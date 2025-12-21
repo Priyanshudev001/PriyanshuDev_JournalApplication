@@ -1,0 +1,61 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page @(isDark ? "dark" : "light")">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <span>Journal Application</span>
+
+            <button class="theme-btn" @onclick="ToggleTheme">
+                @(isDark ? "🌙 Dark" : "☀️ Light")
+            </button>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<style>
+    /* ---------- THEME ---------- */
+    .page.light {
+        background-color: #f9fafb;
+        color: #111827;
+        min-height: 100vh;
+    }
+
+    .page.dark {
+        background-color: #0f172a;
+        color: #f8fafc;
+        min-height: 100vh;
+    }
+
+    /* ---------- TOP BAR ---------- */
+    .top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 3.5rem;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .theme-btn {
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        cursor: pointer;
+    }
+</style>
+
+@code {
+    bool isDark = false;
+
+    void ToggleTheme()
+    {
+        isDark = !isDark;
+    }
+}
