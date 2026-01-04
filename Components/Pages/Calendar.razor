@@ -1,0 +1,27 @@
+﻿@page "/calendar"
+@using Microsoft.AspNetCore.Components.Web
+@inject NavigationManager Navigation
+
+<h3>Choose a Date</h3>
+
+<div class="journal-wrapper" style="max-width:600px;">
+    <label>Select a date to view or edit</label>
+    <input type="date" @bind="SelectedDate" class="form-control" style="padding:14px; border-radius:14px;" />
+
+    <button class="save-btn" style="margin-top:20px;" @onclick="GoToDate">
+        Go to @SelectedDate.ToLongDateString()
+    </button>
+
+    <p class="mt-3">
+        <small>Today is @DateTime.Today.ToLongDateString()</small>
+    </p>
+</div>
+
+@code {
+    private DateTime SelectedDate = DateTime.Today;
+
+    private void GoToDate()
+    {
+        Navigation.NavigateTo($"/journal?date={SelectedDate:yyyy-MM-dd}");
+    }
+}

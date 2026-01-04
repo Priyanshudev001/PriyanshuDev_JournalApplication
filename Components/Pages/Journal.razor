@@ -1,4 +1,9 @@
 ﻿@page "/journal"
+@using System.Text.RegularExpressions
+@using Journal_Application.Models
+@using Journal_Application.Services
+@inject JournalDatabase Database
+
 <style>
     /* ===== Page Wrapper ===== */
     .journal-wrapper {
@@ -9,25 +14,22 @@
         background: linear-gradient(135deg, #eef2ff, #f8fafc);
     }
 
-    /* ===== Headings ===== */
     h3 {
         text-align: center;
         font-weight: 700;
         margin-bottom: 25px;
+        color: #1e293b;
     }
 
-    /* ===== Labels ===== */
     label {
         margin-top: 18px;
         display: block;
         font-size: 14px;
         font-weight: 600;
-        letter-spacing: 0.5px;
         text-transform: uppercase;
         opacity: 0.7;
     }
 
-    /* ===== Inputs ===== */
     input, textarea, select {
         width: 100%;
         padding: 14px;
@@ -43,25 +45,25 @@
         textarea:focus,
         select:focus {
             outline: none;
-            box-shadow: 0 0 0 2px #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
         }
-
     /* ===== Toolbar ===== */
     .editor-toolbar {
         display: flex;
         gap: 10px;
         margin-top: 16px;
+        flex-wrap: wrap;
     }
 
         .editor-toolbar button {
-            flex: 1;
-            padding: 10px;
+            padding: 10px 16px;
             border-radius: 999px;
             border: none;
             background: #e0e7ff;
             color: #3730a3;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
             .editor-toolbar button:hover {
@@ -69,46 +71,66 @@
                 color: white;
             }
 
-    /* ===== Textarea ===== */
     textarea {
-        min-height: 220px;
-        resize: none;
+        min-height: 250px;
+        resize: vertical;
         margin-top: 12px;
+        font-family: inherit;
     }
 
-    /* ===== Save Button ===== */
-    button {
+    button.save-btn {
         width: 100%;
-        margin-top: 22px;
-        padding: 14px;
+        margin-top: 30px;
+        padding: 16px;
         border-radius: 16px;
         border: none;
         background: linear-gradient(135deg, #6366f1, #4f46e5);
         color: white;
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         cursor: pointer;
+        transition: transform 0.2s;
     }
 
-        button:hover {
-            opacity: 0.9;
+        button.save-btn:hover {
+            transform: translateY(-2px);
         }
 
-    /* ===== Preview ===== */
     .markdown-preview {
-        margin-top: 18px;
-        padding: 18px;
+        margin-top: 25px;
+        padding: 20px;
         border-radius: 16px;
         background: white;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        line-height: 1.7;
+    }
+    /* ===== Mood & Tag Pills ===== */
+    .secondary-moods {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
     }
 
-    /* ===== Meta ===== */
-    p {
-        font-size: 13px;
-        opacity: 0.7;
+    .mood-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        background: #e0e7ff;
+        color: #3730a3;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
     }
 
+        .mood-pill.selected {
+            background: #6366f1;
+            color: white;
+        }
     /* ===== Dark Mode ===== */
     .dark .journal-wrapper {
         background: linear-gradient(135deg, #0f172a, #1e293b);
@@ -123,89 +145,331 @@
         box-shadow: inset 0 0 0 1px #475569;
     }
 
-    .dark .editor-toolbar button {
+    .dark .mood-pill {
         background: #334155;
-        color: #f8fafc;
+        color: #cbd5e1;
+    }
+
+        .dark .mood-pill.selected {
+            background: #818cf8;
+            color: #1e293b;
+        }
+
+    .dark h3 {
+        color: #f1f5f9;
     }
 </style>
 
+<div class="journal-wrapper">
+    <h3>Today's Journal Entry – @DateTime.Today.ToLongDateString()</h3>
 
-<h3>Today's Journal Entry</h3>
-<link href="Journal.razor.css" rel="stylesheet" />
-<link href="~/css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <label>Title</label>
+    <input @bind="Title" placeholder="Give your entry a title (optional)" />
+
+    <!-- ===== PRIMARY MOOD ===== -->
+    <label>Primary Mood <span style="color:red">*</span></label>
+    <select @bind="PrimaryMood">
+        <option value="">-- Select Primary Mood --</option>
+        <optgroup label="😊 Positive">
+            <option>Happy</option>
+            <option>Excited</option>
+            <option>Relaxed</option>
+            <option>Grateful</option>
+            <option>Confident</option>
+        </optgroup>
+        <optgroup label="😐 Neutral">
+            <option>Calm</option>
+            <option>Thoughtful</option>
+            <option>Curious</option>
+            <option>Nostalgic</option>
+            <option>Bored</option>
+        </optgroup>
+        <optgroup label="😔 Negative">
+            <option>Sad</option>
+            <option>Angry</option>
+            <option>Stressed</option>
+            <option>Lonely</option>
+            <option>Anxious</option>
+        </optgroup>
+    </select>
+    @if (string.IsNullOrWhiteSpace(PrimaryMood))
+    {
+        <small style="color: red;">Please select a primary mood</small>
+    }
+
+    <!-- ===== SECONDARY MOODS ===== -->
+    <label>Secondary Moods (Optional – max 2)</label>
+    <div class="secondary-moods">
+        @foreach (var mood in AllMoods)
+        {
+            var isSelected = SecondaryMoods.Contains(mood);
+            <div class="mood-pill @(isSelected ? "selected" : "")"
+                 @onclick="@(() => ToggleSecondaryMood(mood))">
+                <span>@mood</span>
+                @if (isSelected)
+                {
+                    <strong>✓</strong>
+                }
+            </div>
+        }
+    </div>
+    <small class="text-muted d-block mt-2">
+        Selected: @SecondaryMoods.Count / 2 @(SecondaryMoods.Any() ? "→ " + string.Join(", ", SecondaryMoods) : "")
+    </small>
+
+    <!-- ===== TAGS ===== -->
+    <label class="mt-4">Tags (Optional)</label>
+    <!-- Pre-defined tags -->
+    <div class="secondary-moods">
+        @foreach (var tag in PreDefinedTags)
+        {
+            bool isSelected = SelectedTags.Contains(tag);
+            <div class="mood-pill @(isSelected ? "selected" : "")"
+                 @onclick="@(() => ToggleTag(tag))">
+                <span>@tag</span>
+                @if (isSelected)
+                {
+                    <strong>✓</strong>
+                }
+            </div>
+        }
+    </div>
+    <!-- Add custom tag -->
+    <div class="mt-3 d-flex gap-2">
+        <input @bind="CustomTagInput"
+               placeholder="Add your own tag (e.g. Project, Vacation)"
+               style="flex:1; padding:14px; border-radius:14px; border:1px solid #ccc;" />
+        <button type="button"
+                style="padding:14px 24px; border-radius:14px; background:#6366f1; color:white; border:none; font-weight:600; cursor:pointer;"
+                @onclick="AddCustomTag"
+                disabled="@string.IsNullOrWhiteSpace(CustomTagInput?.Trim())">
+            Add Tag
+        </button>
+    </div>
+    <!-- Selected tags display -->
+    @if (SelectedTags.Count > 0)
+    {
+        <div class="mt-3">
+            <small class="text-muted">Selected tags:</small>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                @foreach (var tag in SelectedTags)
+                {
+                    <span style="background:#6366f1; color:white; padding:10px 18px; border-radius:999px; font-size:14px; display:inline-flex; align-items:center; gap:8px;">
+                        @tag
+                        <button type="button"
+                                style="background:none; border:none; color:white; font-size:18px; cursor:pointer; line-height:1;"
+                                @onclick="@(() => SelectedTags.Remove(tag))">
+                            ×
+                        </button>
+                    </span>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ===== MARKDOWN EDITOR ===== -->
+    <label class="mt-4">Journal Content</label>
+    <div class="editor-toolbar">
+        <button type="button" @onclick="AddBold"><b>Bold</b></button>
+        <button type="button" @onclick="AddItalic"><i>Italic</i></button>
+        <button type="button" @onclick="AddHeading">Heading</button>
+        <button type="button" @onclick="AddList">List</button>
+        <button type="button" @onclick="AddLink">Link</button>
+    </div>
+    <textarea @bind="MarkdownContent"
+              @bind:event="oninput"
+              placeholder="Start writing your thoughts... Support for **bold**, *italic*, # headings, - lists, and [links](url)"></textarea>
+
+    <button class="save-btn" @onclick="SaveEntry">
+        Save Journal Entry
+    </button>
+
+    <button type="button"
+            style="width:100%; margin-top:15px; padding:16px; background:red; color:white; border:none; border-radius:16px; font-weight:600;"
+            @onclick="DeleteEntry">
+        Delete Today's Entry
+    </button>
+
+    @if (!string.IsNullOrEmpty(SaveMessage))
+    {
+        <div class="alert @(SaveMessage.Contains("Error") ? "alert-danger" : "alert-success") mt-3">@SaveMessage</div>
+    }
+
+    <!-- ===== LIVE PREVIEW ===== -->
+    <h4 class="mt-5">Live Preview</h4>
+    <div class="markdown-preview">
+        @((MarkupString)RenderMarkdown(MarkdownContent))
+    </div>
+
+    <div class="mt-4">
+        <p><b>Created:</b> @CreatedAt.ToString("f")</p>
+        <p><b>Last Updated:</b> @UpdatedAt.ToString("f")</p>
+    </div>
+</div>
 
 @code {
-    string title = "";
-    string markdownContent = "";
-    string mood = "Happy";
+    // Journal Data
+    private string Title = "";
+    private string MarkdownContent = "";
+    private DateTime CreatedAt = DateTime.Now;
+    private DateTime UpdatedAt = DateTime.Now;
 
-    DateTime createdAt = DateTime.Now;
-    DateTime updatedAt = DateTime.Now;
-
-    void SaveEntry()
+    // Mood Tracking
+    private string PrimaryMood = "";
+    private List<string> SecondaryMoods = new();
+    private List<string> AllMoods = new()
     {
-        updatedAt = DateTime.Now;
+        "Happy", "Excited", "Relaxed", "Grateful", "Confident",
+        "Calm", "Thoughtful", "Curious", "Nostalgic", "Bored",
+        "Sad", "Angry", "Stressed", "Lonely", "Anxious"
+    };
+
+    // Tags
+    private List<string> SelectedTags = new();
+    private string CustomTagInput = "";
+    private readonly List<string> PreDefinedTags = new()
+    {
+        "Work", "Career", "Studies", "Family", "Friends", "Relationships",
+        "Health", "Fitness", "Personal Growth", "Self-care", "Hobbies",
+        "Travel", "Nature", "Finance", "Spirituality", "Birthday",
+        "Holiday", "Vacation", "Celebration", "Exercise", "Reading",
+        "Writing", "Cooking", "Meditation", "Yoga", "Music", "Shopping",
+        "Parenting", "Projects", "Planning", "Reflection"
+    };
+
+    private string SaveMessage = "";
+
+    private string TodayKey => DateTime.Today.ToString("yyyy-MM-dd");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var entry = await Database.GetEntryAsync(TodayKey);
+        if (entry != null)
+        {
+            Title = entry.Title;
+            MarkdownContent = entry.Content;
+            PrimaryMood = entry.PrimaryMood;
+            SecondaryMoods = string.IsNullOrEmpty(entry.SecondaryMoods)
+                ? new List<string>()
+                : entry.SecondaryMoods.Split(',').Select(s => s.Trim()).ToList();
+            SelectedTags = string.IsNullOrEmpty(entry.Tags)
+                ? new List<string>()
+                : entry.Tags.Split(',').Select(s => s.Trim()).ToList();
+            CreatedAt = entry.CreatedAt;
+            UpdatedAt = entry.UpdatedAt;
+        }
+        else
+        {
+            // New entry for today
+            Title = "";
+            MarkdownContent = "";
+            PrimaryMood = "";
+            SecondaryMoods = new();
+            SelectedTags = new();
+            CreatedAt = DateTime.Now;
+            UpdatedAt = DateTime.Now;
+        }
     }
 
-    // Toolbar actions
-    void AddBold() => markdownContent += "** **";
-    void AddItalic() => markdownContent += "* *";
-    void AddHeading() => markdownContent += "\n# ";
-    void AddList() => markdownContent += "\n- ";
-
-    MarkupString RenderMarkdown()
+    private async Task SaveEntry()
     {
-        var html = markdownContent;
+        if (string.IsNullOrWhiteSpace(PrimaryMood))
+        {
+            SaveMessage = "Error: Please select a Primary Mood before saving.";
+            return;
+        }
 
-        html = System.Text.RegularExpressions.Regex
-            .Replace(html, @"\*\*(.*?)\*\*", "<b>$1</b>");
+        UpdatedAt = DateTime.Now;
 
-        html = System.Text.RegularExpressions.Regex
-            .Replace(html, @"\*(.*?)\*", "<i>$1</i>");
+        var entry = new JournalEntry
+        {
+            DateKey = TodayKey,
+            Title = Title,
+            Content = MarkdownContent,
+            PrimaryMood = PrimaryMood,
+            SecondaryMoods = string.Join(",", SecondaryMoods),
+            Tags = string.Join(",", SelectedTags),
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt
+        };
 
-        html = html.Replace("# ", "<h3>") + "</h3>";
-        html = html.Replace("- ", "• ");
-        html = html.Replace("\n", "<br />");
+        await Database.SaveEntryAsync(entry);
+        SaveMessage = "Saved successfully!";
+        StateHasChanged();
+    }
 
-        return new MarkupString(html);
+    private async Task DeleteEntry()
+    {
+        await Database.DeleteEntryAsync(TodayKey);
+        Title = "";
+        MarkdownContent = "";
+        PrimaryMood = "";
+        SecondaryMoods = new();
+        SelectedTags = new();
+        CreatedAt = DateTime.Now;
+        UpdatedAt = DateTime.Now;
+        SaveMessage = "Today's entry has been deleted.";
+        StateHasChanged();
+    }
+
+    private void ToggleSecondaryMood(string mood)
+    {
+        if (SecondaryMoods.Contains(mood))
+            SecondaryMoods.Remove(mood);
+        else if (SecondaryMoods.Count < 2)
+            SecondaryMoods.Add(mood);
+        StateHasChanged();
+    }
+
+    private void ToggleTag(string tag)
+    {
+        if (SelectedTags.Contains(tag))
+            SelectedTags.Remove(tag);
+        else
+            SelectedTags.Add(tag);
+    }
+
+    private void AddCustomTag()
+    {
+        var tag = CustomTagInput.Trim();
+        if (!string.IsNullOrEmpty(tag) && !SelectedTags.Contains(tag))
+        {
+            SelectedTags.Add(tag);
+        }
+        CustomTagInput = "";
+    }
+
+    // Markdown Helpers
+    private void AddBold() => InsertText("**bold text**");
+    private void AddItalic() => InsertText("*italic text*");
+    private void AddHeading() => InsertText("\n# Your Heading");
+    private void AddList() => InsertText("\n- Item one\n- Item two");
+    private void AddLink() => InsertText("[Link text](https://example.com)");
+
+    private void InsertText(string text)
+    {
+        MarkdownContent += text;
+    }
+
+    private string RenderMarkdown(string markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+            return "<p><em>Nothing written yet...</em></p>";
+
+        var html = markdown;
+
+        html = Regex.Replace(html, @"\*\*(.*?)\*\*", "<strong>$1</strong>");
+        html = Regex.Replace(html, @"\*(.*?)\*", "<em>$1</em>");
+        html = Regex.Replace(html, @"^### (.*?)$", "<h3>$1</h3>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"^## (.*?)$", "<h2>$1</h2>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"^# (.*?)$", "<h1>$1</h1>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"^\- (.*?)$", "• $1<br>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"\[(.*?)\]\((.*?)\)", "<a href='$2' target='_blank' style='color:#6366f1;text-decoration:underline;'>$1</a>");
+
+        html = html.Replace("\n\n", "</p><p>");
+        html = html.Replace("\n", "<br>");
+        html = "<p>" + html + "</p>";
+
+        return html;
     }
 }
-
-<label>Title</label>
-<input @bind="title" />
-
-<label>Journal Content</label>
-
-<!-- TOOLBAR -->
-<div class="editor-toolbar">
-    <button type="button" @onclick="AddBold"><b>B</b></button>
-    <button type="button" @onclick="AddItalic"><i>I</i></button>
-    <button type="button" @onclick="AddHeading">H</button>
-    <button type="button" @onclick="AddList">• List</button>
-</div>
-
-<textarea rows="6"
-          @bind="markdownContent"
-          placeholder="Write your journal here...">
-</textarea>
-
-<label>Primary Mood</label>
-<select @bind="mood">
-    <option>Happy (Positive)</option>
-    <option>Calm (Neutral)</option>
-    <option>Stressed (Negative)</option>
-</select>
-
-<button @onclick="SaveEntry">Save Journal</button>
-
-<hr />
-
-<h4>Live Preview</h4>
-<div class="markdown-preview">
-    @RenderMarkdown()
-</div>
-
-<hr />
-
-<p><b>Created:</b> @createdAt</p>
-<p><b>Last Updated:</b> @updatedAt</p>
