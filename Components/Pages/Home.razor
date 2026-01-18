@@ -1,5 +1,19 @@
 ﻿@page "/"
 
-<h1>Hello,!</h1>
+<h1>Hello!</h1>
+<p>Welcome to your Journal Application.</p>
 
-Welcome to your new app.
+<button @onclick="GoToEntries"
+        style="padding:12px 20px; font-size:16px; border-radius:8px;">
+    📚 View Past Entries
+</button>
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+
+
+    void GoToEntries()
+    {
+        Nav.NavigateTo("/entries");
+    }
+}

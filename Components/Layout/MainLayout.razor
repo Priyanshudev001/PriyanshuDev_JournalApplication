@@ -1,17 +1,14 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page @(isDark ? "dark" : "light")">
+<div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <span>Journal Application</span>
-
-            <button class="theme-btn" @onclick="ToggleTheme">
-                @(isDark ? "🌙 Dark" : "☀️ Light")
-            </button>
+        <div class="top-row">
+            <span class="navbar-brand">Journal Application</span>
+            <span>🌞 Light</span>
         </div>
 
         <article class="content px-4">
@@ -19,43 +16,30 @@
         </article>
     </main>
 </div>
-
+        
 <style>
-    /* ---------- THEME ---------- */
-    .page.light {
-        background-color: #f9fafb;
-        color: #111827;
-        min-height: 100vh;
-    }
-
-    .page.dark {
-        background-color: #0f172a;
-        color: #f8fafc;
-        min-height: 100vh;
-    }
-
-    /* ---------- TOP BAR ---------- */
-    .top-row {
+    .page {
         display: flex;
-        justify-content: space-between;
+    }
+
+    .sidebar {
+        width: 220px;
+        background: #1e293b;
+        color: white;
+        height: 100vh;
+        padding-top: 20px;
+    }  .top-row {
+        height: 60px;
+        background: #0f172a;
+        color: white;
+        display: flex;
         align-items: center;
-        height: 3.5rem;
-        border-bottom: 1px solid #ccc;
+        justify-content: space-between;
+        padding: 0 20px;
     }
-
-    .theme-btn {
-        border: none;
-        background: transparent;
-        font-size: 16px;
-        cursor: pointer;
+    main {
+        flex: 1;
     }
-</style>
-
-@code {
-    bool isDark = false;
-
-    void ToggleTheme()
-    {
-        isDark = !isDark;
-    }
-}
+    a {
+        color: white !important;
+    }</style>

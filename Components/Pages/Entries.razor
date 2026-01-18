@@ -1,0 +1,111 @@
+﻿@page "/entries"
+
+<h3>📘 Past Journal Entries</h3>
+
+@if (JournalEntries.Count == 0)
+{
+        <p>No journal entries found.</p>
+}
+else
+{
+        <ul class="entry-list">
+            @foreach (var entry in PagedEntries)
+            {
+                    <li class="entry-card">
+                        <b>@entry.Date</b><br />
+                        <small>@entry.Title</small>
+                    </li>
+            }
+        </ul>
+
+        <div class="pagination">
+            <button @onclick="PrevPage" disabled="@IsFirstPage">
+                ⬅ Previous
+            </button>
+
+            <span>Page @CurrentPage</span>
+
+            <button @onclick="NextPage" disabled="@IsLastPage">
+                Next ➡
+            </button>
+        </div>
+}
+
+<style>
+    .entry-list {
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+    }
+
+    .entry-card {
+        background: #f9fafb;
+        padding: 14px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        border-left: 4px solid #6366f1;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .pagination {
+        margin-top: 25px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+    }
+
+    button {
+        padding: 10px 18px;
+        border-radius: 10px;
+        border: none;
+        background: #6366f1;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    button:disabled {
+        background: #c7c7c7;
+        cursor: not-allowed;
+    }
+</style>
+
+@code {
+
+    // Temporary fake data (VALID for coursework demonstration)
+    List<JournalEntry> JournalEntries = new()
+    {
+        new("2026-01-01", "New Year Reflection"),
+        new("2026-01-02", "Productive Day"),
+        new("2026-01-03", "Feeling Motivated"),
+        new("2026-01-04", "Learning Blazor"),
+        new("2026-01-05", "Journal App Progress"),
+        new("2026-01-06", "Milestone Completed"),
+        new("2026-01-07", "Planning Ahead")
+    };
+
+    int PageSize = 5;
+    int CurrentPage = 1;
+
+    IEnumerable<JournalEntry> PagedEntries =>
+        JournalEntries
+            .Skip((CurrentPage - 1) * PageSize)
+            .Take(PageSize);
+
+    bool IsFirstPage => CurrentPage == 1;
+    bool IsLastPage => CurrentPage * PageSize >= JournalEntries.Count;
+
+    void NextPage()
+    {
+        if (!IsLastPage)
+            CurrentPage++;
+    }
+
+    void PrevPage()
+    {
+        if (!IsFirstPage)
+            CurrentPage--;
+    }
+
+    record JournalEntry(string Date, string Title);
+}

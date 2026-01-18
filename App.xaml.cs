@@ -1,15 +1,17 @@
-﻿namespace Journal_Application
-{
-    public partial class App : Application
-    {
-        public App()
-        {
-            InitializeComponent();
-        }
+﻿namespace Journal_Application;
 
-        protected override Window CreateWindow(IActivationState? activationState)
+public partial class App : Application
+{
+    public App()
+    {
+        InitializeComponent();
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        return new Window(new MainPage())
         {
-            return new Window(new MainPage()) { Title = "Journal Application" };
-        }
+            Title = "Journal Application"
+        };
     }
 }

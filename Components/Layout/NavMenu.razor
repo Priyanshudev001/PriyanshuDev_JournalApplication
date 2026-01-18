@@ -1,36 +1,59 @@
-﻿<div class="top-row ps-3 navbar navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand text-white" href="">Journal Application</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿@using Microsoft.AspNetCore.Components.Routing
 
-<div class="collapse navbar-collapse" id="navbarCollapse">
-    <nav class="flex-column p-3">
-        <div class="nav-item py-2">
-            <NavLink class="nav-link text-white" href="" Match="NavLinkMatch.All">
-                <i class="bi bi-house-door-fill me-2"></i> Home
+<nav class="nav-menu">
+    <ul>
+        <li>
+            <NavLink href="/" Match="NavLinkMatch.All" class="nav-link">
+                🏠 Home
             </NavLink>
-        </div>
+        </li>
 
-        <div class="nav-item py-2">
-            <NavLink class="nav-link text-white" href="journal">
-                <i class="bi bi-journal-text me-2"></i> Today's Journal
+        <li>
+            <NavLink href="journal" class="nav-link">
+                ✍️ Journal
             </NavLink>
-        </div>
+    </li>
 
-        <div class="nav-item py-2">
-            <NavLink class="nav-link text-white" href="calendar">
-                <i class="bi bi-calendar-fill me-2"></i> Calendar
+        <li>
+            <NavLink href="entries" class="nav-link">
+                📄 Past Entries
             </NavLink>
-        </div>
+        </li>
+    </ul>
+</nav>
 
-        <div class="nav-item py-2">
-            <NavLink class="nav-link text-white" href="entries">
-                <i class="bi bi-list-ul me-2"></i> Past Entries
-            </NavLink>
-        </div>
-    </nav>
-    </div>
+<style>
+    .nav-menu {
+        padding: 20px;
+    }
+
+    .nav-menu ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .nav-menu li {
+        margin-bottom: 14px;
+    }
+
+    .nav-link {
+        display: block;
+        padding: 10px 14px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        color: #2563eb;
+        transition: background 0.2s;
+    }
+
+    .nav-link:hover {
+        background: #e0e7ff;
+    }
+
+    .nav-link.active {
+        background: #6366f1;
+        color: white;
+    }
+</style>
