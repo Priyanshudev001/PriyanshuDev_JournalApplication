@@ -1,0 +1,99 @@
+﻿@page "/search"
+@using Journal_Application.Models
+@using Journal_Application.Services
+@inject JournalDatabase Database
+
+<h3>🔍 Search & Filter Journal Entries</h3>
+
+<div class="search-box">
+    <input placeholder="Search by title or content..."
+           @bind="SearchText"
+           @bind:event="oninput" />
+
+    <select @bind="SelectedMood">
+        <option value="">All Moods</option>
+        @foreach (var mood in AllMoods)
+        {
+                <option value="@mood">@mood</option>
+        }
+    </select>
+</div>
+
+@if (FilteredEntries.Count == 0)
+{
+        <p>No matching entries found.</p>
+}
+else
+{
+        <ul class="entry-list">
+            @foreach (var entry in FilteredEntries)
+            {
+                    <li class="entry-card">
+                        <b>@entry.DateKey</b><br />
+                        <small>@entry.Title</small><br />
+                        <span>Mood: @entry.PrimaryMood</span>
+                    </li>
+            }
+        </ul>
+}
+
+<style>
+    .search-box {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        max-width: 600px;
+    }
+
+    input, select {
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        flex: 1;
+    }
+
+    .entry-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .entry-card {
+        background: #f9fafb;
+        padding: 14px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        border-left: 4px solid #6366f1;
+    }
+</style>
+
+@code {
+
+    private List<JournalEntry> AllEntries = new();
+    private string SearchText = "";
+    private string SelectedMood = "";
+
+    private readonly List<string> AllMoods = new()
+    {
+        "Happy", "Excited", "Relaxed", "Grateful", "Confident",
+        "Calm", "Thoughtful", "Curious", "Nostalgic", "Bored",
+        "Sad", "Angry", "Stressed", "Lonely", "Anxious"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        AllEntries = await Database.GetAllEntriesAsync();
+    }
+
+    private List<JournalEntry> FilteredEntries =>
+        AllEntries
+            .Where(e =>
+                (string.IsNullOrWhiteSpace(SearchText)
+                 || (e.Title?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                 || (e.Content?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false))
+                &&
+                (string.IsNullOrWhiteSpace(SelectedMood)
+                 || e.PrimaryMood == SelectedMood)
+            )
+            .OrderByDescending(e => e.DateKey)
+            .ToList();
+}
