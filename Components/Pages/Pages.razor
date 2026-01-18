@@ -1,0 +1,80 @@
+﻿@page "/streaks"
+@using Journal_Application.Models
+@using Journal_Application.Services
+@inject JournalDatabase Database
+
+<h3>🔥 Journal Streak</h3>
+
+@if (AllEntries.Count == 0)
+{
+    <p>No journal entries yet.</p>
+}
+else
+{
+    <div class="card">
+        <p><b>Current Streak:</b> @CurrentStreak days</p>
+        <p><b>Longest Streak:</b> @LongestStreak days</p>
+        <p><b>Missed Days:</b> @MissedDays</p>
+    </div>
+}
+
+<style>
+.card {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 400px;
+    border-left: 4px solid #ef4444;
+}
+</style>
+
+@code {
+
+    private List<JournalEntry> AllEntries = new();
+
+    private int CurrentStreak;
+    private int LongestStreak;
+    private int MissedDays;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AllEntries = await Database.GetAllEntriesAsync();
+        CalculateStreaks();
+    }
+
+    private void CalculateStreaks()
+    {
+        var dates = AllEntries
+            .Select(e => DateTime.Parse(e.DateKey))
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        if (!dates.Any())
+            return;
+
+        int current = 1;
+        int longest = 1;
+        int missed = 0;
+
+        for (int i = 1; i < dates.Count; i++)
+        {
+            var diff = (dates[i] - dates[i - 1]).Days;
+
+            if (diff == 1)
+            {
+                current++;
+                longest = Math.Max(longest, current);
+            }
+            else
+            {
+                missed += diff - 1;
+                current = 1;
+            }
+        }
+
+        CurrentStreak = current;
+        LongestStreak = longest;
+        MissedDays = missed;
+    }
+}

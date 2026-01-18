@@ -14,27 +14,31 @@
         <option value="">All Moods</option>
         @foreach (var mood in AllMoods)
         {
-                <option value="@mood">@mood</option>
+            <option value="@mood">@mood</option>
         }
     </select>
 </div>
 
-@if (FilteredEntries.Count == 0)
+@if (AllEntries == null || AllEntries.Count == 0)
 {
-        <p>No matching entries found.</p>
+    <p>No journal entries found.</p>
+}
+else if (FilteredEntries.Count == 0)
+{
+    <p>No matching entries found.</p>
 }
 else
 {
-        <ul class="entry-list">
-            @foreach (var entry in FilteredEntries)
-            {
-                    <li class="entry-card">
-                        <b>@entry.DateKey</b><br />
-                        <small>@entry.Title</small><br />
-                        <span>Mood: @entry.PrimaryMood</span>
-                    </li>
-            }
-        </ul>
+    <ul class="entry-list">
+        @foreach (var entry in FilteredEntries)
+        {
+            <li class="entry-card">
+                <b>@entry.DateKey</b><br />
+                <small>@(entry.Title ?? "No Title")</small><br />
+                <span>Mood: @(entry.PrimaryMood ?? "Not set")</span>
+            </li>
+        }
+    </ul>
 }
 
 <style>
@@ -55,6 +59,7 @@ else
     .entry-list {
         list-style: none;
         padding: 0;
+        max-width: 600px;
     }
 
     .entry-card {
@@ -81,15 +86,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        AllEntries = await Database.GetAllEntriesAsync();
+        AllEntries = await Database.GetAllEntriesAsync() ?? new();
     }
 
     private List<JournalEntry> FilteredEntries =>
         AllEntries
             .Where(e =>
                 (string.IsNullOrWhiteSpace(SearchText)
-                 || (e.Title?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false)
-                 || (e.Content?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false))
+                 || (!string.IsNullOrEmpty(e.Title) &&
+                     e.Title.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                 || (!string.IsNullOrEmpty(e.Content) &&
+                     e.Content.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
                 &&
                 (string.IsNullOrWhiteSpace(SelectedMood)
                  || e.PrimaryMood == SelectedMood)
