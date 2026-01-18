@@ -1,0 +1,113 @@
+﻿@page "/dashboard"
+@using Journal_Application.Services
+@using Journal_Application.Models
+@inject JournalDatabase Database
+
+<h3>📊 Journal Analytics Dashboard</h3>
+
+<div class="dashboard-grid">
+
+    <div class="card">
+        <h4>Total Entries</h4>
+        <p>@TotalEntries</p>
+    </div>
+
+    <div class="card">
+        <h4>Most Used Mood</h4>
+        <p>@MostUsedMood</p>
+    </div>
+
+    <div class="card">
+        <h4>Most Used Tag</h4>
+        <p>@MostUsedTag</p>
+    </div>
+
+</div>
+
+<h4 style="margin-top:30px;">Mood Distribution</h4>
+
+<ul>
+    @foreach (var mood in MoodCounts)
+    {
+        <li><b>@mood.Key</b> : @mood.Value</li>
+    }
+</ul>
+
+<style>
+    .dashboard-grid {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    .card {
+        background: #eef2ff;
+        padding: 20px;
+        border-radius: 16px;
+        width: 220px;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+
+        .card h4 {
+            color: #3730a3;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            font-size: 24px;
+            font-weight: bold;
+        }
+</style>
+
+@code {
+
+    int TotalEntries;
+    string MostUsedMood = "N/A";
+    string MostUsedTag = "N/A";
+
+    Dictionary<string, int> MoodCounts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var entries = await Database.GetAllEntriesAsync();
+        TotalEntries = entries.Count;
+
+        // Count moods
+        foreach (var entry in entries)
+        {
+            if (!string.IsNullOrEmpty(entry.PrimaryMood))
+            {
+                if (!MoodCounts.ContainsKey(entry.PrimaryMood))
+                    MoodCounts[entry.PrimaryMood] = 0;
+
+                MoodCounts[entry.PrimaryMood]++;
+            }
+        }
+
+        if (MoodCounts.Any())
+            MostUsedMood = MoodCounts.OrderByDescending(x => x.Value).First().Key;
+
+        // Count tags
+        var tagCounts = new Dictionary<string, int>();
+
+        foreach (var entry in entries)
+        {
+            if (!string.IsNullOrEmpty(entry.Tags))
+            {
+                foreach (var tag in entry.Tags.Split(','))
+                {
+                    var t = tag.Trim();
+                    if (!tagCounts.ContainsKey(t))
+                        tagCounts[t] = 0;
+
+                    tagCounts[t]++;
+                }
+            }
+        }
+
+        if (tagCounts.Any())
+            MostUsedTag = tagCounts.OrderByDescending(x => x.Value).First().Key;
+    }
+}
